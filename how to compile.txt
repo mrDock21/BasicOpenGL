@@ -1,0 +1,7 @@
+Run cmd:
+"-I" Is for .h files...
+
+source: https://stackoverflow.com/questions/6141147/how-do-i-include-a-path-to-libraries-in-g
+
+To compile... (main.cpp):
+    g++ main.cpp include/glad/include/glad.c -lglfw3 -ldl -lX11 -pthread -Iinclude/ -o main
