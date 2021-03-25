@@ -2,17 +2,41 @@
 
 Mesh::Mesh() { }
 
-Mesh::Mesh(float* verts, const u_long& vertsSize, uint* indices, const u_long& indicesSize) {
+/**
+ * Constructs mesh with vertex buffer only
+ * @param verts Pointer to data array
+ * @param vertsSize Size in bytes of data array
+ * @param esize Size in bytes of all attributes contained in data
+*/
+Mesh::Mesh(float* verts, const u_long& vertsSize, const u_long& esize) : usesEBO(false) {
     // vertex array object
     glGenVertexArrays(1, &VAO);
     Use();
     // vertex buffer
-    VertexBuffer vbo(verts, vertsSize, BufferUsage::Static);
-    vbo.Use();
+    VBO = VertexBuffer(verts, vertsSize, esize, BufferUsage::Static);
+    VBO.Use();
+}
+
+/**
+ * Constructs mesh with vertex buffer only
+ * @param verts Pointer to data array
+ * @param vertsSize Size in bytes of data array
+ * @param esize Size in bytes of all attributes contained in data
+ * @param indices Pointer to indices array
+ * @param indicesSize Size in bytes of indices array
+*/
+Mesh::Mesh(float* verts, const u_long& vertsSize, const u_long& esize, uint* indices, const u_long& indicesSize)
+    : usesEBO(true) {
+    // vertex array object
+    glGenVertexArrays(1, &VAO);
+    Use();
+    // vertex buffer
+    VBO = VertexBuffer(verts, vertsSize, esize, BufferUsage::Static);
+    VBO.Use();
     // elements (index) buffer
     // element array object -> Gets binded to current VAO
-    ElementBuffer evo(indices, indicesSize, BufferUsage::Static);
-    evo.Use();
+    EBO = ElementBuffer(indices, indicesSize, BufferUsage::Static);
+    EBO.Use();
 }
 
 void Mesh::SetShader(const Shader& s) {
@@ -56,6 +80,13 @@ void Mesh::Render() const {
     Use();
     shader.Use();
     texture.Use();
+}
+
+void Mesh::Draw() const  {
+    if (usesEBO)
+        glDrawElements(GL_TRIANGLES, EBO.GetArraySize(), GL_UNSIGNED_INT, 0);
+    else
+        glDrawArrays(GL_TRIANGLES, 0, VBO.GetArrayCount());
 }
 
 const Shader& Mesh::GetShader() {

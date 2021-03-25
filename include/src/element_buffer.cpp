@@ -1,6 +1,6 @@
 #include "src/element_buffer.hpp"
 
-ElementBuffer::ElementBuffer() {
+ElementBuffer::ElementBuffer() : arraySize(0), bytesSize(0) {
 
 }
 
@@ -10,7 +10,8 @@ ElementBuffer::ElementBuffer() {
  * @param size byte size of "indices"
  * @param glUsage OpenGL draw mode constant
  */
-ElementBuffer::ElementBuffer(uint* indices, const u_long& size, const BufferUsage& glUsage) {
+ElementBuffer::ElementBuffer(uint* indices, const u_long& size, const BufferUsage& glUsage) 
+    : arraySize(size / sizeof(uint)), bytesSize(size) {
     // vertex buffer
     glGenBuffers(1, &ID);
     Use();
@@ -22,4 +23,18 @@ ElementBuffer::ElementBuffer(uint* indices, const u_long& size, const BufferUsag
 */
 void ElementBuffer::Use() const {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ID);
+}
+
+/**
+ * @returns number of elements within its array data
+*/
+u_long ElementBuffer::GetArraySize() const {
+    return arraySize;
+}
+
+/**
+ * @returns Size in bytes of inner array data
+*/
+u_long ElementBuffer::GetBytesSize() const {
+    return bytesSize;
 }

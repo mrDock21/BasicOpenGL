@@ -11,17 +11,19 @@ uint getGlBufferUsage(const BufferUsage& usage) {
     return 0;
 }
 
-VertexBuffer::VertexBuffer() {
-
-}
+VertexBuffer::VertexBuffer() : elementSize(0), bytesSize(0) { }
 
 /**
  * Constructs a new vertex buffer object
  * @param verts Vertices of this vertex buffer
  * @param size byte size of "verts"
+ * @param eSize Bytes size of each single index of data (vertex + normal + uv's...)
  * @param glUsage OpenGL draw mode constant
  */
-VertexBuffer::VertexBuffer(float* verts, const u_long& size, const BufferUsage& glUsage) {
+VertexBuffer::VertexBuffer(
+        float* verts, const u_long& size, const u_long& eSize, const BufferUsage& glUsage
+    )
+    : elementSize(eSize), bytesSize(size) {
     // vertex buffer
     glGenBuffers(1, &ID);
     Use();
@@ -33,4 +35,18 @@ VertexBuffer::VertexBuffer(float* verts, const u_long& size, const BufferUsage& 
 */
 void VertexBuffer::Use() const {
     glBindBuffer(GL_ARRAY_BUFFER, ID);
+}
+
+/**
+ * @returns number of elements within its array data
+*/
+u_long VertexBuffer::GetArrayCount() const {
+    return (elementSize != 0) ? bytesSize / elementSize : 0;
+}
+
+/**
+ * @returns Size in bytes of inner array data
+*/
+u_long VertexBuffer::GetBytesSize() const {
+    return bytesSize;
 }
