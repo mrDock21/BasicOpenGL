@@ -58,6 +58,10 @@ void Camera::Rotate(const glm::vec3& rot) {
     }
 }
 
+const glm::vec3& Camera::GetPosition() const {
+    return pos;
+}
+
 glm::vec3 Camera::GetForward() const {
     return forward;
 }

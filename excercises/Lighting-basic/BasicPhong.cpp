@@ -41,12 +41,18 @@ const std::string SRC_FRAGMENT =
     "uniform vec3 objectColor;\n"
     "uniform vec3 lightPosition;\n"
     "uniform vec3 lightColor;\n"
+    "uniform vec3 cameraPos;\n"
     "uniform sampler2D ourTexture;\n"
     "void main() {\n"
+    // diffuse compute
     "   vec3 lightDir = normalize(lightPosition - fragPos.xyz);\n"
     "   float intensity = clamp(dot(lightDir, normal), 0.0, 1.0);\n"
-    "   vec3 color = objectColor * ambientFactor;\n"
-    "   color += lightColor * intensity;\n"
+    // specular compute
+    "   vec3 viewDir = normalize(cameraPos - fragPos.xyz);\n"
+    "   float specular = pow( clamp( dot( reflect(-lightDir, normal), viewDir), 0.0, 1.0), 32);\n"
+    // color
+    "   vec3 color = lightColor * objectColor * (ambientFactor + intensity);\n"
+    "   color += lightColor * specular;\n"
     "   FragColor = texture(ourTexture, texCoord) * vec4(color, 1.0);\n"
     "}\n";
 
@@ -249,7 +255,8 @@ class CameraMove : public Window {
             // since all of 'em use the same pointer
             cubes.at(0)->GetShader().SetMat4x4("view", view);
             cubes.at(0)->GetShader().SetMat4x4("projection", proj);
-
+            cubes.at(0)->GetShader().SetVec3("cameraPos", mainCamera.GetPosition());
+            
             for (int i(0); i < NUM_CUBES; i++) {
                 mesh = cubes.at(i);
                 // Excercise: each third cube rotates by time

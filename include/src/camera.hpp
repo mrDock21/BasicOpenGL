@@ -17,6 +17,7 @@ class Camera {
         void Move(const glm::vec3&);
         void Rotate(const glm::vec3&);
 
+        const glm::vec3& GetPosition() const;
         glm::vec3 GetForward() const;
         glm::vec3 GetRight() const;
         glm::vec3 GetUp() const;
