@@ -1,18 +1,18 @@
 #include <iostream>
 #include <vector>
-#include <fstream>
+#include <stdlib.h>
+#include <time.h>
+
 
 #include "src/window.hpp"
 #include "src/camera.hpp"
 
 /**
- * EXCERCISE IS TO MAKE PHONG LIGHTING IN VIEW SPACE
- * 
  * TO COMPILE:
- *      g++ PhongViewSpace.cpp ./../../include/glad/include/glad.c ./../../include/src/window.cpp ./../../include/src/Shader.cpp ./../../include/src/Texture.cpp ./../../include/src/Mesh.cpp ./../../include/src/element_buffer.cpp ./../../include/src/vertex_buffer.cpp ./../../include/src/camera.cpp ./../../include/src/input.cpp ./../../include/src/shading/material.cpp -Wall -Wextra -lglfw3 -ldl -lX11 -pthread -I./../../include/ -o PhongViewSpace
+ *      g++ MaterialsBasic.cpp ./../../include/glad/include/glad.c ./../../include/src/window.cpp ./../../include/src/Shader.cpp ./../../include/src/Texture.cpp ./../../include/src/Mesh.cpp ./../../include/src/element_buffer.cpp ./../../include/src/vertex_buffer.cpp ./../../include/src/camera.cpp ./../../include/src/input.cpp ./../../include/src/shading/material.cpp -Wall -Wextra -lglfw3 -ldl -lX11 -pthread -I./../../include/ -o MaterialsBasic
  *
  * WITHOUT EXTRA WARNINGS:
- *      g++ PhongViewSpace.cpp ./../../include/glad/include/glad.c ./../../include/src/window.cpp ./../../include/src/Shader.cpp ./../../include/src/Texture.cpp ./../../include/src/Mesh.cpp ./../../include/src/element_buffer.cpp ./../../include/src/vertex_buffer.cpp ./../../include/src/camera.cpp ./../../include/src/input.cpp ./../../include/src/shading/material.cpp -Wall -lglfw3 -ldl -lX11 -pthread -I./../../include/ -o PhongViewSpace
+ *      g++ MaterialsBasic.cpp ./../../include/glad/include/glad.c ./../../include/src/window.cpp ./../../include/src/Shader.cpp ./../../include/src/Texture.cpp ./../../include/src/Mesh.cpp ./../../include/src/element_buffer.cpp ./../../include/src/vertex_buffer.cpp ./../../include/src/camera.cpp ./../../include/src/input.cpp ./../../include/src/shading/material.cpp -Wall -lglfw3 -ldl -lX11 -pthread -I./../../include/ -o MaterialsBasic
 */
 
 const std::string SRC_VERTEX =
@@ -39,22 +39,32 @@ const std::string SRC_FRAGMENT =
     "in vec3 normal;\n"
     "in vec4 fragPos;\n"
     "out vec4 FragColor;\n"
-    "uniform float ambientFactor;\n"
-    "uniform vec3 objectColor;\n"
-    // should be in view space
-    "uniform vec3 lightPosition;\n"
-    "uniform vec3 lightColor;\n"
+    // textures
     "uniform sampler2D ourTexture;\n"
+    // structs
+    "struct Light {\n"
+        // position should be in view space
+    "   vec3 position, color;\n"
+    "   vec3 ambient, diffuse, specular;\n"
+    "};\n"
+    "struct Material {\n"
+        "vec3 ambient, diffuse, specular;\n"
+        "float shininess;\n"
+    "};\n"
+    "uniform Light light;\n"
+    "uniform Material material;\n"
     "void main() {\n"
     // diffuse compute
-    "   vec3 lightDir = normalize(lightPosition - fragPos.xyz);\n"
+    "   vec3 lightDir = normalize(light.position - fragPos.xyz);\n"
     "   float intensity = clamp(dot(lightDir, normal), 0.0, 1.0);\n"
     // specular compute
     "   vec3 viewDir = normalize(vec3(0) - fragPos.xyz);\n"
-    "   float specular = pow( clamp( dot( reflect(-lightDir, normal), viewDir), 0.0, 1.0), 32);\n"
+    "   float specular = pow( clamp( dot( reflect(-lightDir, normal), viewDir), 0.0, 1.0), material.shininess);\n"
     // color
-    "   vec3 color = lightColor * objectColor * (ambientFactor + intensity);\n"
-    "   color += lightColor * specular;\n"
+    "   vec3 color;\n"
+    "   color = light.ambient * material.ambient;\n"
+    "   color += light.diffuse * intensity * material.diffuse * light.color;\n"
+    "   color += light.specular * material.specular * light.color * specular;\n"
     "   FragColor = texture(ourTexture, texCoord) * vec4(color, 1.0);\n"
     "}\n";
 
@@ -66,25 +76,55 @@ const std::string SRC_FRAGMENT_LIGHT =
     "   FragColor = vec4(lightColor, 1.0);\n"
     "}\n";
 
-class CameraMove : public Window {
-    public:
-        CameraMove(const std::string& wnd, const int& w, const int h) 
-            : Window(wnd, w, h), mainCamera(), 
-              deltaTime(0), prevTime(0), lightPos(0.0f, 0.0f, 0.0f) { 
+struct LightData {
+    glm::vec3 ambient, diffuse, specular;
+    glm::vec3 position, color;
+};
 
-                cubesPositions.push_back(glm::vec3(0, 0, 0));
-                cubesPositions.push_back(glm::vec3(2, 5, -15));
-                cubesPositions.push_back(glm::vec3(-1.5f, -2.2f, -2.5f));
-                cubesPositions.push_back(glm::vec3(-3.8f, -2.0f, -12.3f));
-                cubesPositions.push_back(glm::vec3(2.4f, -0.4f, -3.5f));
-                cubesPositions.push_back(glm::vec3(-1.7f, 3.0f, -7.5f));
-                cubesPositions.push_back(glm::vec3(1.3f, -2.0f, -2.5f));
-                cubesPositions.push_back(glm::vec3(1.5f, 2.0f, -2.5f));
-                cubesPositions.push_back(glm::vec3(1.5f, 0.2f, -1.5f));
-                cubesPositions.push_back(glm::vec3(-1.3f, 1.0f, -1.5f));
+struct CubeData {
+    glm::vec3 diffuse, ambient, specular;
+    glm::vec3 position;
+    float shininess;
+};
+
+float getRandom() {
+    int r = rand() % 10;
+    return (float)r / 10.0f;
+}
+
+class MaterialsBasic : public Window {
+    public:
+        MaterialsBasic(const std::string& wnd, const int& w, const int h) 
+            : Window(wnd, w, h), mainCamera(), 
+              deltaTime(0), prevTime(0) { 
+                CubeData data;
+                glm::vec3 positions[] = {
+                    glm::vec3(0, 0, 0), glm::vec3(2, 5, -15),
+                    glm::vec3(-1.5f, -2.2f, -2.5f), glm::vec3(-3.8f, -2.0f, -12.3f),
+                    glm::vec3(2.4f, -0.4f, -3.5f), glm::vec3(-1.7f, 3.0f, -7.5f),
+                    glm::vec3(1.3f, -2.0f, -2.5f), glm::vec3(1.5f, 2.0f, -2.5f),
+                    glm::vec3(1.5f, 0.2f, -1.5f), glm::vec3(-1.3f, 1.0f, -1.5f)
+                };
+                // init light data
+                lightData.position = glm::vec3(0.0f);
+                lightData.ambient = glm::vec3(0.5f);
+                lightData.diffuse = glm::vec3(1.0f);
+                lightData.specular = lightData.color = glm::vec3(1.0f);
+                // init random cubes' material properties
+                for (int i(0); i < NUM_CUBES; i++) {
+                    data.position = positions[i];
+                    data.diffuse.r = getRandom();
+                    data.diffuse.g = getRandom();
+                    data.diffuse.b = getRandom();
+                    data.ambient = data.diffuse;
+                    data.specular = glm::vec3(0.5f);
+                    data.shininess = 32.0f;
+
+                    cubesData.push_back(data);
+                }
             }
 
-        ~CameraMove() { 
+        ~MaterialsBasic() { 
             std::cout << "[Multiple-Cubes::FreesMemory]" << std::endl;
             
             for (int i(0); i < NUM_CUBES; i++) {
@@ -92,7 +132,7 @@ class CameraMove : public Window {
             }
             delete lightSource;
             cubes.clear();
-            cubesPositions.clear();
+            cubesData.clear();
         }
 
         void CreateLight(float* vertices, const u_long& vsize, const u_long& esize) {
@@ -223,7 +263,6 @@ class CameraMove : public Window {
 
                 cubes.push_back(mesh);
             }
-            material.SetUniform<float>("ambientFactor", AMBIENT_FACTOR);
             CreateLight(rect, sizeof(rect), componentsSize);
         }
 
@@ -231,22 +270,27 @@ class CameraMove : public Window {
             glm::mat4 model(1.0f);
             float t = (float)glfwGetTime();
             
-            lightPos.z = sin(t) * LIGHT_RADIUS_ROT;
-            lightPos.x = cos(t) * LIGHT_RADIUS_ROT;
-            lightPos.y = 0.0f;
+            lightData.position.z = sin(t) * LIGHT_RADIUS_ROT;
+            lightData.position.x = cos(t) * LIGHT_RADIUS_ROT;
+            lightData.position.y = 0.0f;
 
-            model = glm::translate(model, lightPos);
+            lightData.color.r = sin(t * 2.0f);
+            lightData.color.g = sin(t * 0.7f);
+            lightData.color.b = sin(t * 1.3f);
+
+            model = glm::translate(model, lightData.position);
             model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
 
             // send pos to cubes shader in view space
-            lightPos = view * model * glm::vec4(lightPos, 1.0f);
-            cubes.at(0)->SetUniform<glm::vec3>("lightPosition", lightPos);
+            lightData.position = 
+                view * model * glm::vec4(lightData.position, 1.0f);
 
+            // for light's shader            
             lightSource->Render();
             lightSource->SetUniform<glm::mat4x4>("model", model);
             lightSource->SetUniform<glm::mat4x4>("view", view);
             lightSource->SetUniform<glm::mat4x4>("projection", proj);
-            lightSource->SetUniform<glm::vec3>("lightColor", LIGHT_COLOR);
+            lightSource->SetUniform<glm::vec3>("lightColor", lightData.color);
             lightSource->Draw();
         }
 
@@ -260,22 +304,30 @@ class CameraMove : public Window {
                 glm::perspective(45.0, (double)GetAspectRatio(), 0.1, 100.0);
             
             OnRenderLight(view, proj);
-            // since all of 'em use the same pointer
-            cubes.at(0)->SetUniform<glm::mat4x4>("view", view);
-            cubes.at(0)->SetUniform<glm::mat4x4>("projection", proj);
 
             for (int i(0); i < NUM_CUBES; i++) {
                 mesh = cubes.at(i);
                 // Excercise: each third cube rotates by time
                 angle = (i + 1) % 3 == 0 ? (float)glfwGetTime() : glm::radians(20.0f * i);
-                model = glm::translate(glm::mat4(1.0f), cubesPositions.at(i));
+                model = glm::translate(glm::mat4(1.0f), cubesData.at(i).position);
                 model = glm::rotate(model, angle, glm::vec3(1, 0.3f, 0.5f));
 
                 mesh->Render();
                 // update uniforms
+                mesh->SetUniform<glm::mat4x4>("view", view);
+                mesh->SetUniform<glm::mat4x4>("projection", proj);
                 mesh->SetUniform<glm::mat4x4>("model", model);
-                mesh->SetUniform<glm::vec3>("objectColor", OBJECT_COLOR);
-                mesh->SetUniform<glm::vec3>("lightColor", LIGHT_COLOR);
+                mesh->SetUniform<glm::vec3>("material.diffuse", cubesData.at(i).diffuse);
+                mesh->SetUniform<glm::vec3>("material.ambient", cubesData.at(i).ambient);
+                mesh->SetUniform<glm::vec3>("material.specular", cubesData.at(i).specular);
+                mesh->SetUniform<float>("material.shininess", cubesData.at(i).shininess);
+                
+                mesh->SetUniform<glm::vec3>("light.position", lightData.position);
+                mesh->SetUniform<glm::vec3>("light.diffuse", lightData.diffuse);
+                mesh->SetUniform<glm::vec3>("light.ambient", lightData.ambient);
+                mesh->SetUniform<glm::vec3>("light.specular", lightData.specular);
+                mesh->SetUniform<glm::vec3>("light.color", lightData.color);
+                
                 mesh->Draw();
             }
             // update delta time
@@ -285,22 +337,24 @@ class CameraMove : public Window {
         }
     
     private:
+        LightData lightData;
         Camera mainCamera;
         std::vector<Mesh*> cubes;
-        std::vector<glm::vec3> cubesPositions;
+        std::vector<CubeData> cubesData;
         Mesh* lightSource;
         float deltaTime, prevTime;
-        glm::vec3 lightPos;
 
         const int NUM_CUBES = 10;
         const float cameraSpeed = 0.1f, sensitivity = 0.1f, AMBIENT_FACTOR = 0.25f;
         const float LIGHT_RADIUS_ROT = 2, LIGHT_SPEED = 1;
-        const glm::vec3 LIGHT_COLOR = glm::vec3(1.0f, 1.0f, 1.0f),
-                        OBJECT_COLOR = glm::vec3(1.0f, 0.5f, 0.31f);
+        const glm::vec3 OBJECT_COLOR = glm::vec3(1.0f, 0.5f, 0.31f);
 };
 
 int main() {
-    CameraMove wnd("LearnOpenGL", 800, 600);
+    MaterialsBasic wnd("LearnOpenGL", 800, 600);
+    // init random seed
+    srand(time(nullptr));
+
     wnd.MainLoop();
     return 0;
 }

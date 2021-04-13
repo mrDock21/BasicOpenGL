@@ -6,7 +6,7 @@
 
 #include "src/vertex_buffer.hpp"
 #include "src/element_buffer.hpp"
-#include "src/Shader.hpp"
+#include "src/shading/material.hpp"
 #include "src/Texture.hpp"
 
 class Mesh {
@@ -14,20 +14,30 @@ class Mesh {
         Mesh();
         Mesh(float[], const u_long&, const u_long&, uint[], const u_long&);
         Mesh(float[], const u_long&, const u_long&);
-        void SetShader(const Shader&);
+        void SetMaterial(const Material&);
         void SetTexture(const Texture&);
         void SetAttribute(const int&, const int&, const uint&, const bool&, const u_long&, const u_long&) const;
         void Use() const;
         void Render() const;
         void Draw() const;
 
-        const Shader& GetShader();
-        const Texture& GetTexture();
+        template<class T>
+        void SetUniform(const std::string&, const T&);
+
+        const Texture& GetTexture() const;
     private:
         uint VAO;
-        Shader shader;
+        Material material;
         Texture texture;
         VertexBuffer VBO;
         ElementBuffer EBO;
         bool usesEBO;
 };
+
+/**
+ * Sets uniform in inner material
+*/
+template<class T>
+void Mesh::SetUniform(const std::string& uniform, const T& value) {
+    material.SetUniform<T>(uniform, value);
+}

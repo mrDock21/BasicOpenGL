@@ -39,8 +39,8 @@ Mesh::Mesh(float* verts, const u_long& vertsSize, const u_long& esize, uint* ind
     EBO.Use();
 }
 
-void Mesh::SetShader(const Shader& s) {
-    shader = s;
+void Mesh::SetMaterial(const Material& m) {
+    material = m;
 }
 
 void Mesh::SetTexture(const Texture& t) {
@@ -78,7 +78,7 @@ void Mesh::Use() const {
 
 void Mesh::Render() const {
     Use();
-    shader.Use();
+    material.Use();
     texture.Use();
 }
 
@@ -89,10 +89,6 @@ void Mesh::Draw() const  {
         glDrawArrays(GL_TRIANGLES, 0, VBO.GetArrayCount());
 }
 
-const Shader& Mesh::GetShader() {
-    return shader;
-}
-
-const Texture& Mesh::GetTexture() {
+const Texture& Mesh::GetTexture() const {
     return texture;
 }
