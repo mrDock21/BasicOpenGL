@@ -9,11 +9,14 @@
 #include "src/components/transform.hpp"
 
 /**
- * TO COMPILE:
+ * TO COMPILE: (directly)
  *      g++ SingleCube.cpp ./../../include/glad/include/glad.c ./../../include/src/window.cpp ./../../include/src/Shader.cpp ./../../include/src/Texture.cpp ./../../include/src/Mesh.cpp ./../../include/src/element_buffer.cpp ./../../include/src/vertex_buffer.cpp ./../../include/src/camera.cpp ./../../include/src/input.cpp ./../../include/src/shading/material.cpp ./../../include/src/components/transform.cpp -Wall -Wextra -lglfw3 -ldl -lX11 -pthread -I./../../include/ -o SingleCube
  *
  * WITHOUT EXTRA WARNINGS:
  *      g++ SingleCube.cpp ./../../include/glad/include/glad.c ./../../include/src/window.cpp ./../../include/src/Shader.cpp ./../../include/src/Texture.cpp ./../../include/src/Mesh.cpp ./../../include/src/element_buffer.cpp ./../../include/src/vertex_buffer.cpp ./../../include/src/camera.cpp ./../../include/src/input.cpp ./../../include/src/shading/material.cpp ./../../include/src/components/transform.cpp -Wall -lglfw3 -ldl -lX11 -pthread -I./../../include/ -o SingleCube
+ *
+ * WITH MAKEFILE: (you must be at root folder)
+ *      make targetFile=SingleCube targetFolder=Test-template
 */
 
 const std::string SRC_VERTEX =
@@ -220,7 +223,7 @@ class SingleCube : public Window {
                 -0.5f, -0.5f, -1,  0, -1.0f, 0,   0.0f, 1.0f
             };
             const u_long componentsSize = 8 * sizeof(float);
-            Texture mainTex("./../../assets/oldman_meme.jpg", Texture::TexFormat::RGB, Texture::PixelFormat::RGB);
+            Texture mainTex(OLD_MAN_IMG, Texture::TexFormat::RGB, Texture::PixelFormat::RGB);
             Material material(SRC_VERTEX, SRC_FRAGMENT);
             
             // enable ZTest buffering!
@@ -335,6 +338,8 @@ class SingleCube : public Window {
 
         const float cameraSpeed = 0.1f, sensitivity = 0.1f;
         const float LIGHT_RADIUS_ROT = 2, LIGHT_SPEED = 1, AMBIENT_FACTOR = 0.25f;
+        // NOTE: this path is relative to the console's location!!!
+        const std::string OLD_MAN_IMG = "assets/oldman_meme.jpg";
 };
 
 int main() {
