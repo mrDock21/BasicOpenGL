@@ -6,9 +6,11 @@
 #include <vendor/glm/gtc/matrix_transform.hpp>
 
 // TODO test this to see if this actualliy works...
-class Transform {
+namespace Components {
+    class Transform {
     public:
         Transform();
+        Transform(const Transform&);
 
         void Translate(const glm::vec3&);
         void SetPosition(const glm::vec3&);
@@ -26,6 +28,8 @@ class Transform {
         glm::vec3 Right() const;
         glm::vec3 Up() const;
         glm::mat4 ModelMatrix() const;
+
+        Transform& operator = (const Transform&);
     private:
         glm::vec3 position, scale, rotationEulers;
         glm::vec3 worldRotationEulers;
@@ -33,4 +37,5 @@ class Transform {
 
         static glm::vec3 ComputeForward(float, float);
         static glm::vec3 ComputeRight(float, float);
-};
+    };
+}

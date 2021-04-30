@@ -1,21 +1,26 @@
 #include "src/components/transform.hpp"
 
-Transform::Transform() 
+Components::Transform::Transform() 
 : position(0.0f), scale(1.0f), rotationEulers(0.0f, -90.0f, 0.0f),
   worldRotationEulers(0.0f),
   forward(0, 0, -1), right(1, 0, 0), up(0, 1, 0) { }
 
+Components::Transform::Transform(const Components::Transform& other)
+: position(other.position), scale(other.scale), rotationEulers(other.rotationEulers),
+  worldRotationEulers(other.worldRotationEulers),
+  forward(other.forward), right(other.right), up(other.up) { }
+
 /**
  * Translates position by given direction
 */
-void Transform::Translate(const glm::vec3& dir) {
+void Components::Transform::Translate(const glm::vec3& dir) {
     position += dir;
 }
 
 /**
  * Updates position with new given
 */
-void Transform::SetPosition(const glm::vec3& newPos) {
+void Components::Transform::SetPosition(const glm::vec3& newPos) {
     position.x = newPos.x;
     position.y = newPos.y;
     position.z = newPos.z;
@@ -24,7 +29,7 @@ void Transform::SetPosition(const glm::vec3& newPos) {
 /**
  * Updates scale with new given
 */
-void Transform::SetScale(const glm::vec3& newScale) {
+void Components::Transform::SetScale(const glm::vec3& newScale) {
     scale.x = newScale.x;
     scale.y = newScale.y;
     scale.z = newScale.z;
@@ -33,11 +38,14 @@ void Transform::SetScale(const glm::vec3& newScale) {
 /**
  * Updates scale uniformly
 */
-void Transform::SetScale(const float& s) {
+void Components::Transform::SetScale(const float& s) {
     scale = s * scale;
 }
 
-void Transform::SetRotation(const glm::vec3& rot) {
+/**
+ * Overrides current rotation with given
+*/
+void Components::Transform::SetRotation(const glm::vec3& rot) {
     glm::vec3 rads(glm::radians(rot));
     rotationEulers.x = rot.x;
     rotationEulers.y = rot.y;
@@ -52,7 +60,7 @@ void Transform::SetRotation(const glm::vec3& rot) {
 /**
  * Rotates scale by amount given
 */
-void Transform::Rotate(const glm::vec3& deltaRot) {
+void Components::Transform::Rotate(const glm::vec3& deltaRot) {
 
     glm::vec3 rads( glm::radians(rotationEulers + deltaRot) );
     // forward
@@ -65,46 +73,49 @@ void Transform::Rotate(const glm::vec3& deltaRot) {
     rotationEulers += deltaRot;
 }
 
-void Transform::RotateWorldSpace(const glm::vec3& rotDeltas) {
+void Components::Transform::RotateWorldSpace(const glm::vec3& rotDeltas) {
     worldRotationEulers += rotDeltas;
 }
 
 /**
  * Gets position's copy
 */
-glm::vec3 Transform::Position() const { return position; }
+glm::vec3 Components::Transform::Position() const { return position; }
 
 /**
  * Gets scale's copy
 */
-glm::vec3 Transform::Scale() const { return scale;  }
+glm::vec3 Components::Transform::Scale() const { return scale;  }
 
 /**
  * Gets rotation's copy
 */
-glm::vec3 Transform::Rotation() const { return rotationEulers; }
+glm::vec3 Components::Transform::Rotation() const { return rotationEulers; }
 
 /**
  * Gets rotation in world space as copy
 */
-glm::vec3 Transform::WorldSpaceRotation() const { return worldRotationEulers; }
+glm::vec3 Components::Transform::WorldSpaceRotation() const { return worldRotationEulers; }
 
 /**
  * Gets forward's vector copy
 */
-glm::vec3 Transform::Forward() const { return forward; }
+glm::vec3 Components::Transform::Forward() const { return forward; }
 
 /**
  * Gets right's vector copy
 */
-glm::vec3 Transform::Right() const { return right;  }
+glm::vec3 Components::Transform::Right() const { return right;  }
 
 /**
  * Gets up's vector copy
 */
-glm::vec3 Transform::Up() const { return up; }
+glm::vec3 Components::Transform::Up() const { return up; }
 
-glm::mat4 Transform::ModelMatrix() const {
+/**
+ * Gets Model matrix of this transform
+*/
+glm::mat4 Components::Transform::ModelMatrix() const {
     glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
 
     model = glm::rotate(model, rotationEulers.z, forward);
@@ -116,7 +127,12 @@ glm::mat4 Transform::ModelMatrix() const {
     return model;
 }
 
-glm::vec3 Transform::ComputeForward(float radX, float radY) {
+/**
+ * Computes new forward vector based on given rotation (radians)
+ * @param radX Rotation on X axis
+ * @param radY Rotation on Y axis
+*/
+glm::vec3 Components::Transform::ComputeForward(float radX, float radY) {
     glm::vec3 newForward;
     // forward
     newForward.x = cos(radY);
@@ -126,11 +142,27 @@ glm::vec3 Transform::ComputeForward(float radX, float radY) {
     return newForward;
 }
 
-glm::vec3 Transform::ComputeRight(float radZ, float radY) {
+/**
+ * Computes new right vector based on given rotation (radians)
+ * @param radZ Rotation on X axis
+ * @param radY Rotation on Y axis
+*/
+glm::vec3 Components::Transform::ComputeRight(float radZ, float radY) {
     glm::vec3 newRight;
     // right
     newRight.z = -cos(radY);
     newRight.x = -sin(radY) * cos(radZ);
     newRight.y = sin(radZ);
     return newRight;
+}
+
+Components::Transform& Components::Transform::operator= (const Components::Transform& other) {
+    this->position = other.position;
+    this->scale = other.scale;
+    this->rotationEulers = other.rotationEulers;
+    this->forward = other.forward;
+    this->right = other.right;
+    this->up = other.up;
+    this->worldRotationEulers = other.worldRotationEulers;
+    return *this;
 }

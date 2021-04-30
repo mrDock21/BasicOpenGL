@@ -12,7 +12,7 @@ vpath %.o ${objFolder}/
 all: ${buildFolder}/${targetFile}
 
 
-${buildFolder}/${targetFile}: glad.o window.o Shader.o Texture.o Mesh.o element_buffer.o vertex_buffer.o camera.o input.o material.o transform.o ${targetFile}.o
+${buildFolder}/${targetFile}: glad.o window.o Shader.o Texture.o Mesh.o element_buffer.o vertex_buffer.o input.o material.o transform.o camera.o ${targetFile}.o
 	echo 'Linking obj files'
 	#link all compiled objects
 	g++ ${objFolder}/${targetFile}.o ${objFolder}/glad.o ${objFolder}/window.o ${objFolder}/Shader.o ${objFolder}/Texture.o ${objFolder}/Mesh.o ${objFolder}/element_buffer.o ${objFolder}/vertex_buffer.o ${objFolder}/camera.o ${objFolder}/input.o ${objFolder}/material.o ${objFolder}/transform.o -o ${buildFolder}/${targetFile} ${glfwLibs}
@@ -54,7 +54,7 @@ material.o: Shader.o shading/material.cpp
 	echo 'Compilling => material.cpp'
 	g++ -Wall -I${includeFolder} -c ${srcFolder}/shading/material.cpp -o ${objFolder}/material.o
 
-camera.o: camera.cpp
+camera.o: transform.o camera.cpp
 	echo 'Compilling => camera.cpp'
 	g++ -Wall -I${includeFolder} -c ${srcFolder}/camera.cpp -o ${objFolder}/camera.o
 
