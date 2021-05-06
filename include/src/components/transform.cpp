@@ -47,12 +47,21 @@ void Components::Transform::SetScale(const float& s) {
 */
 void Components::Transform::SetRotation(const glm::vec3& rot) {
     glm::vec3 rads(glm::radians(rot));
+    glm::vec4 auxRight;
     rotationEulers.x = rot.x;
     rotationEulers.y = rot.y;
     rotationEulers.z = rot.z;
 
     forward = ComputeForward(rads.x, rads.y);
-    right = ComputeRight(rads.z, rads.y);
+    right = glm::cross(forward, glm::vec3(0.0f, 0.1f, 0.0f));
+    //ComputeRight(rads.z, rads.y);
+    // instead of computing, we rotate the cross producted vector
+    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), rotationEulers.z, forward);
+    auxRight = rotMat * glm::vec4(right, 0.0f);;
+    right.x = auxRight.x;
+    right.y = auxRight.y;
+    right.z = auxRight.z;
+    right = glm::normalize(right * 100.0f);
     // update up
     up = glm::cross(right, forward);
 }
