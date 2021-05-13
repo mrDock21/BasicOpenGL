@@ -165,19 +165,21 @@ class MaterialsBasic : public Window {
         }
 
         void HandleInput() {
+            glm::vec3 dir(0);
             if (Input::PressedW())
                 // move forward (since camera faces towards negative z)
-                mainCamera.Move(mainCamera.GetForward() * deltaTime);
+                dir = mainCamera.Transform().Forward();
             if (Input::PressedS())
                 // move backwards (camera faces towards negative z)
-                mainCamera.Move(-mainCamera.GetForward() * deltaTime);
+                dir = -mainCamera.Transform().Forward();
             if (Input::PressedA())
                 // move left
-                mainCamera.Move(-mainCamera.GetRight() * deltaTime);
+                dir = -mainCamera.Transform().Right();
             if (Input::PressedD())
                 // move right
-                mainCamera.Move(mainCamera.GetRight() * deltaTime);
+                dir = mainCamera.Transform().Right();
 
+            mainCamera.Move(dir * deltaTime);
             if (Input::PressedESC())
                 Close();
 

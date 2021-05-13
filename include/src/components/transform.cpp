@@ -1,14 +1,18 @@
 #include "src/components/transform.hpp"
 
 Components::Transform::Transform() 
-: position(0.0f), scale(1.0f), rotationEulers(0.0f, -90.0f, 0.0f),
-  worldRotationEulers(0.0f),
-  forward(0, 0, -1), right(1, 0, 0), up(0, 1, 0) { }
+: position(0.0f), scale(1.0f) {
+    glm::quat identity = glm::quat();
+    // initialize both rotations in zeros
+    SetRotation(identity);
+    SetGlobalRotation(identity);
+}
 
 Components::Transform::Transform(const Components::Transform& other)
-: position(other.position), scale(other.scale), rotationEulers(other.rotationEulers),
-  worldRotationEulers(other.worldRotationEulers),
-  forward(other.forward), right(other.right), up(other.up) { }
+: position(other.position), scale(other.scale),
+  forward(other.forward), right(other.right), up(other.up), 
+  rotation(other.rotation), globalRotation(other.globalRotation), 
+  rotationMatrix(other.rotationMatrix), globalRotationMatrix(other.globalRotationMatrix) { }
 
 /**
  * Translates position by given direction
@@ -43,47 +47,60 @@ void Components::Transform::SetScale(const float& s) {
 }
 
 /**
- * Overrides current rotation with given
+ * Overrides current rotation with given, in degrees
 */
-void Components::Transform::SetRotation(const glm::vec3& rot) {
-    glm::vec3 rads(glm::radians(rot));
-    glm::vec4 auxRight;
-    rotationEulers.x = rot.x;
-    rotationEulers.y = rot.y;
-    rotationEulers.z = rot.z;
-
-    forward = ComputeForward(rads.x, rads.y);
-    right = glm::cross(forward, glm::vec3(0.0f, 0.1f, 0.0f));
-    //ComputeRight(rads.z, rads.y);
-    // instead of computing, we rotate the cross producted vector
-    glm::mat4 rotMat = glm::rotate(glm::mat4(1.0f), rotationEulers.z, forward);
-    auxRight = rotMat * glm::vec4(right, 0.0f);;
-    right.x = auxRight.x;
-    right.y = auxRight.y;
-    right.z = auxRight.z;
-    right = glm::normalize(right * 100.0f);
-    // update up
-    up = glm::cross(right, forward);
+void Components::Transform::SetEulerAngles(const glm::vec3& eulers) {
+    SetRotation(glm::quat(glm::radians(eulers)));
 }
 
 /**
- * Rotates scale by amount given
+ * Rotates in LOCAL space by amount euler angles given
+ * @param deltaEulers Rotation made (euler angles) in degrees
 */
-void Components::Transform::Rotate(const glm::vec3& deltaRot) {
-
-    glm::vec3 rads( glm::radians(rotationEulers + deltaRot) );
-    // forward
-    forward = ComputeForward(rads.x, rads.y);
-    // right
-    right = ComputeRight(rads.z, rads.y);
-
-    // update up
-    up = glm::cross(right, forward);
-    rotationEulers += deltaRot;
+void Components::Transform::RotateEulers(const glm::vec3& deltaEulers) {
+    glm::quat rot(glm::radians(deltaEulers));
+    Rotate(rot);
 }
 
-void Components::Transform::RotateWorldSpace(const glm::vec3& rotDeltas) {
-    worldRotationEulers += rotDeltas;
+/**
+ * Overrides current rotation with given
+*/
+void Components::Transform::SetRotation(const glm::quat& rot) {
+
+    rotation = rot;
+    rotationMatrix = glm::toMat4(rotation);
+
+    ComputeForwardAndRight();
+}
+
+/**
+ * Rotates in LOCAL space by amount given
+ * @param deltaRot Rotation made (quaternion)
+*/
+void Components::Transform::Rotate(const glm::quat& deltaRot) {
+    rotation = rotation * deltaRot;
+    rotationMatrix = glm::toMat4(rotation);
+
+    ComputeForwardAndRight();
+}
+
+/**
+ * Rotates in GLOBAL space by angle in given axis
+ * @param angleDelta angle (degrees) to rotate
+ * @param axis Rotation will be done around given axis
+*/
+void Components::Transform::Rotate(const float& angleDelta, const glm::vec3& axis) {
+    globalRotation = globalRotation * glm::angleAxis(glm::radians(angleDelta), axis);
+    globalRotationMatrix = glm::toMat4(globalRotation);
+
+    ComputeForwardAndRight();
+}
+
+void Components::Transform::SetGlobalRotation(const glm::quat& globalRot) {
+    globalRotation = globalRot;
+    globalRotationMatrix = glm::toMat4(globalRotation);
+
+    ComputeForwardAndRight();
 }
 
 /**
@@ -99,12 +116,26 @@ glm::vec3 Components::Transform::Scale() const { return scale;  }
 /**
  * Gets rotation's copy
 */
-glm::vec3 Components::Transform::Rotation() const { return rotationEulers; }
+glm::quat Components::Transform::Rotation() const { return rotation; }
+
+/**
+ * Gets local rotation as euler angles
+*/
+glm::vec3 Components::Transform::EulerAngles() const { 
+    return glm::degrees( glm::eulerAngles(rotation) ); 
+}
 
 /**
  * Gets rotation in world space as copy
 */
-glm::vec3 Components::Transform::WorldSpaceRotation() const { return worldRotationEulers; }
+glm::quat Components::Transform::GlobalRotation() const { return globalRotation; }
+
+/**
+ * Gets global rotation as euler angles
+*/
+glm::vec3 Components::Transform::GlobalEulersAngles() const {
+    return glm::degrees( glm::eulerAngles(globalRotation) );
+}
 
 /**
  * Gets forward's vector copy
@@ -125,12 +156,13 @@ glm::vec3 Components::Transform::Up() const { return up; }
  * Gets Model matrix of this transform
 */
 glm::mat4 Components::Transform::ModelMatrix() const {
+    // at last: translate
     glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
-
-    model = glm::rotate(model, rotationEulers.z, forward);
-    model = glm::rotate(model, rotationEulers.x, right);
-    model = glm::rotate(model, rotationEulers.y, up);
-
+    // third: global space rotation
+    model = model * globalRotationMatrix;
+    // second: rotate in local space
+    model = model * rotationMatrix;
+    // first scale
     model = glm::scale(model, scale);
 
     return model;
@@ -141,37 +173,28 @@ glm::mat4 Components::Transform::ModelMatrix() const {
  * @param radX Rotation on X axis
  * @param radY Rotation on Y axis
 */
-glm::vec3 Components::Transform::ComputeForward(float radX, float radY) {
-    glm::vec3 newForward;
-    // forward
-    newForward.x = cos(radY);
-    newForward.z = sin(radY) * cos(radX);
-    newForward.y = sin(radX);
-
-    return newForward;
-}
-
-/**
- * Computes new right vector based on given rotation (radians)
- * @param radZ Rotation on X axis
- * @param radY Rotation on Y axis
-*/
-glm::vec3 Components::Transform::ComputeRight(float radZ, float radY) {
-    glm::vec3 newRight;
-    // right
-    newRight.z = -cos(radY);
-    newRight.x = -sin(radY) * cos(radZ);
-    newRight.y = sin(radZ);
-    return newRight;
+void Components::Transform::ComputeForwardAndRight() {
+    glm::mat4 rotMat = globalRotationMatrix * rotationMatrix;
+    // rotate global forward by local rot
+    forward = rotMat * glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+    // rotate global right by local rot
+    right = rotMat * glm::vec4(1.0f, 0.0f, 0.0f, 0.0f);
+    // rotate global up by local rot
+    up = rotMat * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f);
 }
 
 Components::Transform& Components::Transform::operator= (const Components::Transform& other) {
     this->position = other.position;
     this->scale = other.scale;
-    this->rotationEulers = other.rotationEulers;
+
+    this->rotation = other.rotation;
+    this->rotationMatrix = other.rotationMatrix;
+
+    this->globalRotation = other.globalRotation;
+    this->globalRotationMatrix = other.globalRotationMatrix;
+
     this->forward = other.forward;
     this->right = other.right;
     this->up = other.up;
-    this->worldRotationEulers = other.worldRotationEulers;
     return *this;
 }

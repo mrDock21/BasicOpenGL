@@ -1,14 +1,15 @@
 #include "src/Mesh.hpp"
 
-Mesh::Mesh() { }
+Mesh::Mesh() : transform() { }
 
 /**
  * Constructs mesh with vertex buffer only
  * @param verts Pointer to data array
  * @param vertsSize Size in bytes of data array
- * @param esize Size in bytes of all attributes contained in data
+ * @param esize Size in bytes of all attributes contained in data (vertex, normal, uv...)
 */
-Mesh::Mesh(float* verts, const u_long& vertsSize, const u_long& esize) : usesEBO(false) {
+Mesh::Mesh(float* verts, const u_long& vertsSize, const u_long& esize) 
+: transform(), usesEBO(false) {
     // vertex array object
     glGenVertexArrays(1, &VAO);
     Use();
@@ -18,10 +19,10 @@ Mesh::Mesh(float* verts, const u_long& vertsSize, const u_long& esize) : usesEBO
 }
 
 /**
- * Constructs mesh with vertex buffer only
+ * Constructs mesh with vertex buffer and index buffer
  * @param verts Pointer to data array
  * @param vertsSize Size in bytes of data array
- * @param esize Size in bytes of all attributes contained in data
+ * @param esize Size in bytes of all attributes contained in data (vertex, normal, uv...)
  * @param indices Pointer to indices array
  * @param indicesSize Size in bytes of indices array
 */
@@ -87,6 +88,11 @@ void Mesh::Draw() const  {
         glDrawElements(GL_TRIANGLES, EBO.GetArraySize(), GL_UNSIGNED_INT, 0);
     else
         glDrawArrays(GL_TRIANGLES, 0, VBO.GetArrayCount());
+}
+
+/* Doesn't have const to avoid trouble */
+const Components::Transform& Mesh::Transform() {
+    return transform;    
 }
 
 const Texture& Mesh::GetTexture() const {

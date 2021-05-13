@@ -38,7 +38,7 @@ Texture.o: Texture.cpp
 	echo 'Compilling => Texture.cpp'
 	g++ -Wall -I${includeFolder} -c ${srcFolder}/Texture.cpp -o ${objFolder}/Texture.o
 
-Mesh.o: element_buffer.o vertex_buffer.o Texture.o material.o Mesh.cpp
+Mesh.o: element_buffer.o vertex_buffer.o Texture.o material.o transform.o Mesh.cpp
 	echo 'Compilling => Mesh.cpp'
 	g++ -Wall -I${includeFolder} -c ${srcFolder}/Mesh.cpp -o ${objFolder}/Mesh.o
 

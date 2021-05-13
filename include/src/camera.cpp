@@ -22,24 +22,35 @@ void Camera::Move(const glm::vec3& dir) {
 }
 
 /**
- * Will rotate camera's forward with given angles
- * @param rot Delta euler angles rotation
+ * Will rotate camera's local X axis with angle
+ * @param angleX Angle (degrees) to rotate in X axis
 */
-void Camera::Rotate(const glm::vec3& rot) {
-    glm::vec3 rotationEulers = transform.Rotation();
-    float angleX(rot.x), angleY(rot.y);
+void Camera::RotatePitch(const float& angleX) {
+    glm::quat oldRot = transform.Rotation();
+    glm::vec3 forward,
+              deltaRot(angleX,  0.0f, 0.0f);
 
-    if (angleY != 0 || angleX != 0) {
-        rotationEulers.y += angleY;
-        rotationEulers.x += angleX;
+    transform.RotateEulers(deltaRot);
+    forward = transform.Forward();
 
-        if (rotationEulers.x > 89 && angleX > 0)
-            rotationEulers.x = 89.0f;
-        else if (rotationEulers.x < -89 && angleX < 0)
-            rotationEulers.x = -89.0f;
+    if (forward.y > 0.95f || forward.y < -0.95f)
+        transform.SetRotation(oldRot);
+}
 
-        transform.SetRotation(rotationEulers);
-    }
+/**
+ * Will rotate camera's global Y axis with angle
+ * @param angleY Angle (degrees) to rotate in global Y axis
+*/
+void Camera::RotateYaw(const float& angleY) {
+    transform.Rotate(angleY, glm::vec3(0.0f, 1.0f, 0.0f));
+}
+
+/**
+ * Will rotate camera's local Z axis with angle
+ * @param angleZ Angle (degrees) to rotate in Z axis
+*/
+void Camera::RotateRoll(const float& angleZ) {
+    transform.RotateEulers(glm::vec3(0.0f,  0.0f, angleZ));
 }
 
 const Components::Transform& Camera::Transform() const {
@@ -53,5 +64,5 @@ glm::mat4 Camera::GetViewMatrix() const {
     glm::vec3 pos(transform.Position()),
               forward(transform.Forward());
     // we send position, target, and genric up
-    return glm::lookAt(pos, pos + forward, glm::vec3(0, 1, 0));
+    return glm::lookAt(pos, pos + forward, transform.Up());
 }

@@ -140,16 +140,20 @@ class SingleCube : public Window {
         }
         
         void UpdateMouseLook() {
+            glm::vec3 rot(0.0f);
             // jaw
             if (Input::PressedLEFT())
-                mainCamera.Rotate(glm::vec3(0, -360 * deltaTime * sensitivity, 0));
+                rot.y = 360.0f * deltaTime * sensitivity;
             if (Input::PressedRIGHT())
-                mainCamera.Rotate(glm::vec3(0, 360 * deltaTime * sensitivity, 0));
+                rot.y = -360.0f * deltaTime * sensitivity;
             // pitch
             if (Input::PressedUP())
-                mainCamera.Rotate(glm::vec3(360 * deltaTime * sensitivity, 0, 0));
+                rot.x = 360.0f * deltaTime * sensitivity;
             if (Input::PressedDOWN())
-                mainCamera.Rotate(glm::vec3(-360 * deltaTime * sensitivity, 0, 0));
+                rot.x = -360.0f * deltaTime * sensitivity;
+
+            mainCamera.RotateYaw(rot.y);
+            mainCamera.RotatePitch(rot.x);
         }
 
         void HandleInput() {
@@ -304,7 +308,11 @@ class SingleCube : public Window {
             model = glm::rotate(model, angle, glm::vec3(1, 0.3f, 0.5f));
             */
             angle = (float)glfwGetTime();
-            cubeData.transform.SetRotation(glm::vec3(0.0f, 0.0f, angle));
+            cubeData.transform.SetRotation(
+                glm::quat(
+                    glm::radians(glm::vec3(0.0f, 0.0f, 0.0f))
+                )
+            );
             model = cubeData.transform.ModelMatrix();
             cube->Render();
             // update uniforms

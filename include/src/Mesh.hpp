@@ -8,6 +8,7 @@
 #include "src/element_buffer.hpp"
 #include "src/shading/material.hpp"
 #include "src/Texture.hpp"
+#include "src/components/transform.hpp"
 
 class Mesh {
     public:
@@ -24,9 +25,11 @@ class Mesh {
         template<class T>
         void SetUniform(const std::string&, const T&);
 
+        const Components::Transform& Transform();
         const Texture& GetTexture() const;
     private:
         uint VAO;
+        Components::Transform transform;
         Material material;
         Texture texture;
         VertexBuffer VBO;

@@ -15,7 +15,9 @@ class Camera {
         Camera();
         Camera(const glm::vec3&);
         void Move(const glm::vec3&);
-        void Rotate(const glm::vec3&);
+        void RotateYaw(const float&);
+        void RotatePitch(const float&);
+        void RotateRoll(const float&);
 
         const Components::Transform& Transform() const;
 
