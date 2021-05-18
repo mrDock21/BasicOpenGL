@@ -1,27 +1,20 @@
 #pragma once
 
-#include <iostream>
-#include <math.h>
-
-#include <vendor/glm/glm.hpp>
-#include <vendor/glm/gtc/matrix_transform.hpp>
-
-#include "src/number_operations.hpp"
 #include "src/components/transform.hpp"
 
 class Camera {
     public:
 
         Camera();
-        Camera(const glm::vec3&);
-        void Move(const glm::vec3&);
+        Camera(const Vector3&);
+        void Move(const Vector3&);
         void RotateYaw(const float&);
         void RotatePitch(const float&);
         void RotateRoll(const float&);
 
         const Components::Transform& Transform() const;
 
-        glm::mat4 GetViewMatrix() const;
+        Matrix4 GetViewMatrix() const;
 
     private:
         Components::Transform transform;

@@ -2,47 +2,49 @@
 
 #include <iostream>
 
-#include <vendor/glm/glm.hpp>
-#include <vendor/glm/gtc/matrix_transform.hpp>
-#include <vendor/glm/gtc/quaternion.hpp>
-#include <vendor/glm/gtx/quaternion.hpp>
+#include "src/components/vector4.hpp"
+#include "src/components/vector3.hpp"
+#include "src/components/quaternion.hpp"
+#include "src/components/matrix4.hpp"
 
-// TODO test this to see if this actualliy works...
 namespace Components {
+    /**
+     * Stores position, scale and orientation of owner
+    */
     class Transform {
     public:
         Transform();
         Transform(const Transform&);
 
-        void Translate(const glm::vec3&);
-        void SetPosition(const glm::vec3&);
-        void SetScale(const glm::vec3&);
+        void Translate(const Vector3&);
+        void SetPosition(const Vector3&);
+        void SetScale(const Vector3&);
         void SetScale(const float&);
-        void SetEulerAngles(const glm::vec3&);
-        void RotateEulers(const glm::vec3&);
-        void SetRotation(const glm::quat&);
-        void Rotate(const glm::quat&);
-        void Rotate(const float&, const glm::vec3&);
-        void SetGlobalRotation(const glm::quat&);
+        void SetEulerAngles(const Vector3&);
+        void RotateEulers(const Vector3&);
+        void SetRotation(const Quaternion&);
+        void Rotate(const Quaternion&);
+        void Rotate(const float&, const Vector3&);
+        void SetGlobalRotation(const Quaternion&);
         
 
-        glm::vec3 Position() const;
-        glm::vec3 Scale() const;
-        glm::vec3 EulerAngles() const;
-        glm::vec3 GlobalEulersAngles() const;
-        glm::vec3 Forward() const;
-        glm::vec3 Right() const;
-        glm::vec3 Up() const;
-        glm::quat Rotation() const;
-        glm::quat GlobalRotation() const;
-        glm::mat4 ModelMatrix() const;
+        Vector3 Position() const;
+        Vector3 Scale() const;
+        Vector3 EulerAngles() const;
+        Vector3 GlobalEulersAngles() const;
+        Vector3 Forward() const;
+        Vector3 Right() const;
+        Vector3 Up() const;
+        Quaternion Rotation() const;
+        Quaternion GlobalRotation() const;
+        Matrix4 ModelMatrix() const;
 
         Transform& operator = (const Transform&);
     private:
-        glm::vec3 position, scale;
-        glm::vec3 forward, right, up;
-        glm::quat rotation, globalRotation;
-        glm::mat4 rotationMatrix, globalRotationMatrix;
+        Vector3 position, scale;
+        Vector3 forward, right, up;
+        Quaternion rotation, globalRotation;
+        Matrix4 rotationMatrix, globalRotationMatrix;
 
         void ComputeForwardAndRight();
     };

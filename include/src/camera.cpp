@@ -13,11 +13,11 @@ Camera::Camera()
  * Initializes camera at given position
  * @param initialPos Initial position
 */
-Camera::Camera(const glm::vec3& initialPos) : Camera() { 
+Camera::Camera(const Vector3& initialPos) : Camera() { 
     transform.SetPosition(initialPos);
 }
 
-void Camera::Move(const glm::vec3& dir) {
+void Camera::Move(const Vector3& dir) {
     transform.Translate(dir);
 }
 
@@ -26,14 +26,13 @@ void Camera::Move(const glm::vec3& dir) {
  * @param angleX Angle (degrees) to rotate in X axis
 */
 void Camera::RotatePitch(const float& angleX) {
-    glm::quat oldRot = transform.Rotation();
-    glm::vec3 forward,
-              deltaRot(angleX,  0.0f, 0.0f);
+    Quaternion oldRot = transform.Rotation();
+    Vector3 forward, deltaRot(angleX,  0.0f, 0.0f);
 
     transform.RotateEulers(deltaRot);
     forward = transform.Forward();
 
-    if (forward.y > 0.95f || forward.y < -0.95f)
+    if (forward.Y() > 0.95f || forward.Y() < -0.95f)
         transform.SetRotation(oldRot);
 }
 
@@ -42,7 +41,7 @@ void Camera::RotatePitch(const float& angleX) {
  * @param angleY Angle (degrees) to rotate in global Y axis
 */
 void Camera::RotateYaw(const float& angleY) {
-    transform.Rotate(angleY, glm::vec3(0.0f, 1.0f, 0.0f));
+    transform.Rotate(angleY, Vector3::Up());
 }
 
 /**
@@ -50,7 +49,7 @@ void Camera::RotateYaw(const float& angleY) {
  * @param angleZ Angle (degrees) to rotate in Z axis
 */
 void Camera::RotateRoll(const float& angleZ) {
-    transform.RotateEulers(glm::vec3(0.0f,  0.0f, angleZ));
+    transform.RotateEulers(Vector3(0.0f,  0.0f, angleZ));
 }
 
 const Components::Transform& Camera::Transform() const {
@@ -60,9 +59,8 @@ const Components::Transform& Camera::Transform() const {
 /**
  * Gets view matrix
 */
-glm::mat4 Camera::GetViewMatrix() const {
-    glm::vec3 pos(transform.Position()),
-              forward(transform.Forward());
+Matrix4 Camera::GetViewMatrix() const {
+    Vector3 pos(transform.Position()), forward(transform.Forward());
     // we send position, target, and genric up
-    return glm::lookAt(pos, pos + forward, transform.Up());
+    return Matrix4::LookAt(pos, pos + forward, transform.Up());
 }

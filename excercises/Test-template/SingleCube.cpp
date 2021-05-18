@@ -2,6 +2,11 @@
 #include <vector>
 #include <stdlib.h>
 #include <time.h>
+/* Segmentation handler */
+#include <stdio.h>
+#include <execinfo.h>
+#include <signal.h>
+#include <unistd.h>
 
 
 #include "src/window.hpp"
@@ -80,12 +85,12 @@ const std::string SRC_FRAGMENT_LIGHT =
     "}\n";
 
 struct LightData {
-    glm::vec3 ambient, diffuse, specular;
-    glm::vec3 position, color;
+    Vector3 ambient, diffuse, specular;
+    Vector3 position, color;
 };
 
 struct CubeData {
-    glm::vec3 diffuse, ambient, specular;
+    Vector3 diffuse, ambient, specular;
     Components::Transform transform;
     float shininess;
 };
@@ -101,18 +106,18 @@ class SingleCube : public Window {
             : Window(wnd, w, h), mainCamera(), 
               deltaTime(0), prevTime(0) {
                 // init light data
-                lightData.position = glm::vec3(0.0f);
-                lightData.ambient = glm::vec3(0.5f);
-                lightData.diffuse = glm::vec3(1.0f);
-                lightData.specular = lightData.color = glm::vec3(1.0f);
+                lightData.position = Vector3(0.0f);
+                lightData.ambient = Vector3(0.5f);
+                lightData.diffuse = Vector3(1.0f);
+                lightData.specular = lightData.color = Vector3(1.0f);
                 // init random cube's material properties
-                cubeData.transform.SetPosition(glm::vec3(0));
-                cubeData.transform.SetRotation(glm::vec3(0));
-                cubeData.diffuse.r = getRandom();
-                cubeData.diffuse.g = getRandom();
-                cubeData.diffuse.b = getRandom();
+                cubeData.transform.SetPosition(Vector3(0));
+                cubeData.transform.SetEulerAngles(Vector3(0));
+                cubeData.diffuse.SetX(getRandom());
+                cubeData.diffuse.SetY(getRandom());
+                cubeData.diffuse.SetZ(getRandom());
                 cubeData.ambient = cubeData.diffuse;
-                cubeData.specular = glm::vec3(0.5f);
+                cubeData.specular = Vector3(0.5f);
                 cubeData.shininess = 32.0f;
             }
 
@@ -140,24 +145,24 @@ class SingleCube : public Window {
         }
         
         void UpdateMouseLook() {
-            glm::vec3 rot(0.0f);
+            Vector3 rot(0.0f);
             // jaw
             if (Input::PressedLEFT())
-                rot.y = 360.0f * deltaTime * sensitivity;
+                rot.SetY(360.0f * deltaTime * sensitivity);
             if (Input::PressedRIGHT())
-                rot.y = -360.0f * deltaTime * sensitivity;
+                rot.SetY(-360.0f * deltaTime * sensitivity);
             // pitch
             if (Input::PressedUP())
-                rot.x = 360.0f * deltaTime * sensitivity;
+                rot.SetX(360.0f * deltaTime * sensitivity);
             if (Input::PressedDOWN())
-                rot.x = -360.0f * deltaTime * sensitivity;
+                rot.SetX(-360.0f * deltaTime * sensitivity);
 
-            mainCamera.RotateYaw(rot.y);
-            mainCamera.RotatePitch(rot.x);
+            mainCamera.RotateYaw(rot.Y());
+            mainCamera.RotatePitch(rot.X());
         }
 
         void HandleInput() {
-            glm::vec3 dir(0);
+            Vector3 dir(0);
             if (Input::PressedW())
                 // move forward (since camera faces towards negative z)
                 dir = mainCamera.Transform().Forward();
@@ -258,8 +263,10 @@ class SingleCube : public Window {
             CreateLight(rect, sizeof(rect), componentsSize);
         }
 
-        void OnRenderLight(const glm::mat4& view, const glm::mat4& proj) {
-            glm::mat4 model(1.0f);
+        void OnRenderLight(const Matrix4& view, const Matrix4& proj) {
+            Matrix4 model = Matrix4::Indentity();
+            Vector3 lightPos(1);
+            Vector4 lightPosViewSpace;
             /*
             float t = (float)glfwGetTime();
             lightData.position.z = sin(t) * LIGHT_RADIUS_ROT;
@@ -271,34 +278,34 @@ class SingleCube : public Window {
             lightData.color.b = sin(t * 1.3f);
             */
             // only as white color
-            lightData.position.x = lightData.position.y = lightData.position.z = 1;
-            lightData.color.r = lightData.color.g = lightData.color.b = 1;
-
+            lightData.position = Vector3(1);
+            // set white as color
+            lightData.color = Vector3(1); 
             lightData.ambient = lightData.color * AMBIENT_FACTOR;
 
-            model = glm::translate(model, lightData.position);
-            model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));
+            model = Matrix4::Translate(model, lightPos);
+            model = Matrix4::Scale(model, Vector3(0.2f));
 
-            // send pos to cubes shader in view space
-            lightData.position = 
-                view * model * glm::vec4(lightData.position, 1.0f);
+            // send pos to cubes shader in view space (reused later in OnRender)
+            lightPosViewSpace = 
+                Matrix4::Multiply(view * model, Vector4(lightPos, 1.0f));
+            lightData.position = lightPosViewSpace.ToVector3();
 
             // for light's shader            
             lightSource->Render();
-            lightSource->SetUniform<glm::mat4x4>("model", model);
-            lightSource->SetUniform<glm::mat4x4>("view", view);
-            lightSource->SetUniform<glm::mat4x4>("projection", proj);
-            lightSource->SetUniform<glm::vec3>("lightColor", lightData.color);
+            lightSource->SetUniform<Matrix4>("model", model);
+            lightSource->SetUniform<Matrix4>("view", view);
+            lightSource->SetUniform<Matrix4>("projection", proj);
+            lightSource->SetUniform<Vector3>("lightColor", lightData.color);
             lightSource->Draw();
         }
 
         void OnRender() {
             // transformations
-            glm::mat4 model;
-            glm::mat4 view = mainCamera.GetViewMatrix();
             float angle; 
-            glm::mat4 proj = 
-                glm::perspective(45.0, (double)GetAspectRatio(), 0.1, 100.0);
+            Matrix4 model, proj, view = mainCamera.GetViewMatrix();
+
+            proj = Matrix4::Perspective(45.0f, (float)GetAspectRatio(), 0.1f, 100.0f);
             
             OnRenderLight(view, proj);
             
@@ -308,27 +315,23 @@ class SingleCube : public Window {
             model = glm::rotate(model, angle, glm::vec3(1, 0.3f, 0.5f));
             */
             angle = (float)glfwGetTime();
-            cubeData.transform.SetRotation(
-                glm::quat(
-                    glm::radians(glm::vec3(0.0f, 0.0f, 0.0f))
-                )
-            );
+            cubeData.transform.SetEulerAngles(Vector3(0.0f));
             model = cubeData.transform.ModelMatrix();
             cube->Render();
             // update uniforms
-            cube->SetUniform<glm::mat4x4>("view", view);
-            cube->SetUniform<glm::mat4x4>("projection", proj);
-            cube->SetUniform<glm::mat4x4>("model", model);
-            cube->SetUniform<glm::vec3>("material.diffuse", cubeData.diffuse);
-            cube->SetUniform<glm::vec3>("material.ambient", cubeData.ambient);
-            cube->SetUniform<glm::vec3>("material.specular", cubeData.specular);
+            cube->SetUniform<Matrix4>("view", view);
+            cube->SetUniform<Matrix4>("projection", proj);
+            cube->SetUniform<Matrix4>("model", model);
+            cube->SetUniform<Vector3>("material.diffuse", cubeData.diffuse);
+            cube->SetUniform<Vector3>("material.ambient", cubeData.ambient);
+            cube->SetUniform<Vector3>("material.specular", cubeData.specular);
             cube->SetUniform<float>("material.shininess", cubeData.shininess);
             
-            cube->SetUniform<glm::vec3>("light.position", lightData.position);
-            cube->SetUniform<glm::vec3>("light.diffuse", lightData.diffuse);
-            cube->SetUniform<glm::vec3>("light.ambient", lightData.ambient);
-            cube->SetUniform<glm::vec3>("light.specular", lightData.specular);
-            cube->SetUniform<glm::vec3>("light.color", lightData.color);
+            cube->SetUniform<Vector3>("light.position", lightData.position);
+            cube->SetUniform<Vector3>("light.diffuse", lightData.diffuse);
+            cube->SetUniform<Vector3>("light.ambient", lightData.ambient);
+            cube->SetUniform<Vector3>("light.specular", lightData.specular);
+            cube->SetUniform<Vector3>("light.color", lightData.color);
             
             cube->Draw();
 
@@ -352,8 +355,25 @@ class SingleCube : public Window {
         const std::string OLD_MAN_IMG = "assets/oldman_meme.jpg";
 };
 
+void handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+
 int main() {
     SingleCube wnd("LearnOpenGL", 800, 600);
+    
+    // install our handler
+    signal(SIGSEGV, handler);   
+    
     // init random seed
     srand(time(nullptr));
 

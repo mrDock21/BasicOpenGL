@@ -8,6 +8,10 @@
 #include <vendor/glm/glm.hpp>
 #include <vendor/glm/gtc/type_ptr.hpp>
 
+#include "src/components/vector3.hpp"
+#include "src/components/vector4.hpp"
+#include "src/components/matrix4.hpp"
+
 class Shader {
     public:
         Shader();
@@ -16,6 +20,11 @@ class Shader {
 
         void SetUniform(const std::string&, const float&);
         void SetUniform(const std::string&, const int&);
+
+        void SetUniform(const std::string&, const Vector3&);
+        void SetUniform(const std::string&, const Vector4&);
+        void SetUniform(const std::string&, const Matrix4&);
+
         void SetUniform(const std::string&, const glm::vec2&);
         void SetUniform(const std::string&, const glm::vec3&);
         void SetUniform(const std::string&, const glm::vec4&);

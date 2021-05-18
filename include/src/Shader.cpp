@@ -38,6 +38,21 @@ void Shader::SetUniform(const std::string& uniform, const int& value) {
     glUniform1i(GetUniformLocation(uniform), value);
 }
 
+void Shader::SetUniform(const std::string& uniform, const Vector3& v) {
+    // this is possible because Shader is a FRIEND of Vector3
+    SetUniform(uniform, v.vec);
+}
+
+void Shader::SetUniform(const std::string& uniform, const Vector4& v) {
+    // this is possible because Shader is a FRIEND of Vector4
+    SetUniform(uniform, v.vec);
+}
+
+void Shader::SetUniform(const std::string& uniform, const Matrix4& m) {
+    // this is possible because Shader is a FRIEND of Matrix4
+    SetUniform(uniform, m.matrix);
+}
+
 void Shader::SetUniform(const std::string& uniform, const glm::vec2& v) {
     Use();
     glUniform2f(GetUniformLocation(uniform), v.x, v.y);
