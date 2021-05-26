@@ -45,7 +45,7 @@ void Mesh::SetMaterial(const Material& m) {
 }
 
 void Mesh::SetTexture(const Texture& t) {
-    texture = t;
+    textures.push_back(t);
 }
 
 /**
@@ -80,7 +80,12 @@ void Mesh::Use() const {
 void Mesh::Render() const {
     Use();
     material.Use();
-    texture.Use();
+    // bind each texture-set
+    for (int i(0); i < textures.size(); i++) {
+        // first: indicate set and then bind
+        glActiveTexture(GL_TEXTURE0 + i);
+        textures.at(i).Use();
+    }
 }
 
 void Mesh::Draw() const  {
@@ -93,8 +98,4 @@ void Mesh::Draw() const  {
 /* Doesn't have const to avoid trouble */
 const Components::Transform& Mesh::Transform() {
     return transform;    
-}
-
-const Texture& Mesh::GetTexture() const {
-    return texture;
 }

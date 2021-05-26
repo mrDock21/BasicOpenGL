@@ -26,12 +26,11 @@ class Mesh {
         void SetUniform(const std::string&, const T&);
 
         const Components::Transform& Transform();
-        const Texture& GetTexture() const;
     private:
         uint VAO;
         Components::Transform transform;
         Material material;
-        Texture texture;
+        std::vector<Texture> textures;
         VertexBuffer VBO;
         ElementBuffer EBO;
         bool usesEBO;
