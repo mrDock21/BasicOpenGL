@@ -45,6 +45,7 @@ const std::string SRC_FRAGMENT =
     // textures
     "uniform sampler2D diffuseTexture;\n"
     "uniform sampler2D specularTexture;\n"
+    "uniform sampler2D emissionTexture;\n"
     // structs
     "struct Light {\n"
         // position should be in view space
@@ -64,12 +65,17 @@ const std::string SRC_FRAGMENT =
     "   vec3 viewDir = normalize(vec3(0) - fragPos.xyz);\n"
     "   float specular = pow( clamp( dot( reflect(-lightDir, normal), viewDir), 0.0, 1.0), material.shininess);\n"
     "   float specularFlag = texture(specularTexture, texCoord).r;\n"
+    // emission filter
+    "   vec3 emissionColor = texture(emissionTexture, texCoord).rgb;\n"
+    "   float emissionFlag = step(0.1, emissionColor.r);\n"
     // color combination
     "   vec3 color, texColor = texture(diffuseTexture, texCoord).rgb;\n"
         // ambient
     "   color = light.ambient * texColor;\n"
         // diffuse
     "   color += light.diffuse * intensity * texColor * light.color;\n"
+        // emission
+    "   color += (1.0 - step(0.1, specularFlag)) * emissionFlag * emissionColor;\n" 
         // specular
     "   color += light.specular * specularFlag * light.color * specular;\n"
     "   FragColor = vec4(color, 1.0);\n"
@@ -228,8 +234,11 @@ class LightMaps : public Window {
             };
             const u_long componentsSize = 8 * sizeof(float);
             Material material(SRC_VERTEX, SRC_FRAGMENT);
+            // since these are PNGs
             Texture diffuseTex(DIFFUSE_MAP, Texture::TexFormat::RGBA, Texture::PixelFormat::RGBA),
-                    specularTex(SPECULAR_MAP, Texture::TexFormat::RGBA, Texture::PixelFormat::RGBA);
+                    specularTex(SPECULAR_MAP, Texture::TexFormat::RGBA, Texture::PixelFormat::RGBA),
+                    // since is JPG
+                    emissionTex(EMISSION_MAP, Texture::TexFormat::RGB, Texture::PixelFormat::RGB);
             
             // enable ZTest buffering!
             Enable(WndBuffer::Depth);
@@ -247,17 +256,22 @@ class LightMaps : public Window {
             cube->Use();
             material.Use();
             // bind diffuse with texture set 0
-            diffuseTex.Use();
             glActiveTexture(GL_TEXTURE0); 
+            diffuseTex.Use();
             material.SetUniform<int>("diffuseTexture", 0);
             // bind diffuse with texture set 1
-            specularTex.Use();
             glActiveTexture(GL_TEXTURE1);
+            specularTex.Use();
             material.SetUniform<int>("specularTexture", 1);
+            // bind diffuse with texture set 1
+            glActiveTexture(GL_TEXTURE2);
+            emissionTex.Use();
+            material.SetUniform<int>("emissionTexture", 2);
             
             // put here to make sure VAO's been binded
             cube->SetTexture(diffuseTex);
             cube->SetTexture(specularTex);
+            cube->SetTexture(emissionTex);
             
             cube->SetMaterial(material);
             
@@ -351,7 +365,8 @@ class LightMaps : public Window {
         const float LIGHT_RADIUS_ROT = 2, LIGHT_SPEED = 1, AMBIENT_FACTOR = 0.25f;
         // NOTE: this path is relative to the console's location!!!
         const std::string DIFFUSE_MAP = "assets/box-container.png",
-                          SPECULAR_MAP = "assets/box-container-specular.png";
+                          SPECULAR_MAP = "assets/box-container-specular.png",
+                          EMISSION_MAP = "assets/matrix_emission.jpg";
 };
 
 void handler(int sig) {
